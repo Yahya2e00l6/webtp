@@ -9,7 +9,77 @@ const activeCardsCount = document.getElementById('activeCards');
 const recentTransactionsList = document.getElementById('recentTransactionsList');
 const cardsGrid = document.getElementById('cardsGrid');
 const quickTransfer = document.getElementById('quickTransfer');
+const transferSection = document.getElementById('transfer-section');
+const transferForm = document.getElementById('transferForm');
+const beneficiarySelect = document.getElementById('beneficiary');
+const sourceCardSelect = document.getElementById('sourceCard');
+const amountInput = document.getElementById('amount');
+const cancelTransferBtn = document.getElementById('cancelTransferBtn');
+const closeTransferBtn = document.getElementById('closeTransferBtn');
+const submitTransferBtn = document.getElementById('submitTransferBtn');
 const userId = localStorage.getItem('loggedInUserId');
+
+const resetTransferUI = () => {
+    if (!transferForm) return;
+    transferForm.reset();
+
+    if (beneficiarySelect) {
+        beneficiarySelect.innerHTML = '<option value="" disabled selected>Choisir un bénéficiaire</option>';
+    }
+    if (sourceCardSelect) {
+        sourceCardSelect.innerHTML = '<option value="" disabled selected>Sélectionner une carte</option>';
+    }
+};
+
+const openTransferSection = () => {
+    if (!transferSection) return;
+    if (!userId) {
+        window.location.href = '/src/View/login.html';
+        return;
+    }
+
+    transferSection.classList.remove('hidden');
+    resetTransferUI();
+
+    getAllUsers((err, allUsers) => {
+        if (err || !beneficiarySelect) return;
+
+        const otherUsers = allUsers.filter(u => u.id !== userId);
+        if (otherUsers.length === 0) {
+            alert('Aucun autre utilisateur trouvé.');
+            return;
+        }
+
+        beneficiarySelect.innerHTML = '<option value="" disabled selected>Choisir un bénéficiaire</option>';
+        otherUsers.forEach((u) => {
+            const option = document.createElement('option');
+            option.value = u.id;
+            option.textContent = u.name;
+            beneficiarySelect.appendChild(option);
+        });
+    });
+
+    getUserData(userId, (err, user) => {
+        if (err || !sourceCardSelect) return;
+        const cards = user?.wallet?.cards ?? [];
+
+        sourceCardSelect.innerHTML = '<option value="" disabled selected>Sélectionner une carte</option>';
+        cards.forEach((card) => {
+            const option = document.createElement('option');
+            option.value = card.numcards;
+            option.textContent = `${card.type.toUpperCase()} •••• ${card.numcards.slice(-4)}`;
+            sourceCardSelect.appendChild(option);
+        });
+    });
+
+    amountInput?.focus();
+};
+
+const closeTransferSection = () => {
+    if (!transferSection) return;
+    transferSection.classList.add('hidden');
+    resetTransferUI();
+};
 
 const initDashboard = () => {
     if (!userId) {
@@ -100,24 +170,47 @@ const renderCards = (cards, ownerName) => {
 };
 
 quickTransfer?.addEventListener('click', () => {
-    getAllUsers((err, allUsers) => {
-        const otherUsers = allUsers.filter(u => u.id !== userId);
-        if (otherUsers.length === 0) return alert("Aucun autre utilisateur trouvé.");
+    openTransferSection();
+});
 
-        const userNames = otherUsers.map((u, i) => `${i + 1}. ${u.name}`).join('\n');
-        const choice = prompt(`A qui voulez-vous envoyer de l'argent ?\n${userNames}`);
-        const selectedIndex = parseInt(choice) - 1;
+cancelTransferBtn?.addEventListener('click', () => {
+    closeTransferSection();
+});
 
-        if (otherUsers[selectedIndex]) {
-            const amount = parseFloat(prompt("Quel montant ?"));
-            if (isNaN(amount) || amount <= 0) return alert("Montant invalide");
+closeTransferBtn?.addEventListener('click', () => {
+    closeTransferSection();
+});
 
-            executeTransfer(userId, otherUsers[selectedIndex].id, amount, (transErr) => {
-                if (transErr) return alert(transErr);
-                alert("Transfert réussi !");
-                fetchData();
-            });
+transferForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!userId) return;
+
+    if (!transferForm.checkValidity()) {
+        transferForm.reportValidity();
+        return;
+    }
+
+    const toUserId = beneficiarySelect?.value;
+    const amount = parseFloat(amountInput?.value ?? '');
+
+    if (!toUserId) return alert('Veuillez choisir un bénéficiaire.');
+    if (isNaN(amount) || amount <= 0) return alert('Montant invalide');
+
+    if (submitTransferBtn) {
+        submitTransferBtn.disabled = true;
+        submitTransferBtn.textContent = 'Transfert...';
+    }
+
+    executeTransfer(userId, toUserId, amount, (transErr) => {
+        if (submitTransferBtn) {
+            submitTransferBtn.disabled = false;
+            submitTransferBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Transférer';
         }
+
+        if (transErr) return alert(transErr);
+        alert('Transfert réussi !');
+        closeTransferSection();
+        fetchData();
     });
 });
 
@@ -130,6 +223,19 @@ const setupNavigation = () => {
             if (anchor) {
                 const targetId = anchor.getAttribute('href').replace('#', '');
                 e.preventDefault();
+
+                if (targetId === 'transfers') {
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    openTransferSection();
+                    return;
+                }
+
+                const hasTargetSection = Array.from(sections).some(section => section.id === targetId);
+                if (!hasTargetSection) {
+                    return;
+                }
+
                 navLinks.forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
                 sections.forEach(section => section.classList.toggle('active', section.id === targetId));
