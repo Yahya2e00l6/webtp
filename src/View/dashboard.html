@@ -10,7 +10,7 @@
 <body>
   <header>
     <nav class="navbar">
-      <a href="/index.html" class="logo">
+      <a href="index.html" class="logo">
         <img src="../../assets/e-wallet-logo.avif" alt="Logo E-Wallet">
       </a>
       <ul class="nav-links"></ul>
@@ -227,6 +227,49 @@
             </button>
             <button type="submit" class="btn btn-primary" id="submitTransferBtn">
               <i class="fas fa-paper-plane"></i> Transférer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- popup recharge -->
+    <div class="popup-overlay" id="topupPopup">
+    <div class="popup-content">
+      <div class="popup-header">
+        <h2>Recharger mon compte</h2>
+        <button class="btn-close" id="closeTopupBtn" type="button">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="popup-body">
+        <form id="topupForm" class="transfer-form">
+          <div class="form-group">
+            <label for="topupAmount">
+              <i class="fas fa-coins"></i> Montant de la recharge
+            </label>
+            <div class="amount-input">
+              <input type="number" id="topupAmount" name="amount" min="10" step="10" placeholder="0.00" required>
+              <span class="currency">MAD</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="topupMethod">
+              <i class="fas fa-credit-card"></i> Méthode de paiement
+            </label>
+            <select id="topupMethod" name="method" required>
+              <option value="" disabled selected>Sélectionner une méthode</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancelTopupBtn">
+              Annuler
+            </button>
+            <button type="submit" class="btn btn-primary" id="submitTopupBtn">
+              <i class="fas fa-plus-circle"></i> Recharger
             </button>
           </div>
         </form>

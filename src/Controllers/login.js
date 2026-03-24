@@ -6,38 +6,27 @@ const mailInput = document.getElementById("mail");
 const passwordInput  = document.getElementById("password");
 const submitBtn = document.getElementById("submitbtn");
 const display   = document.getElementById("display");
-
-const delay = (ms) => new Promise((resolve) => {
-    setTimeout(resolve, ms);
-});
-
 // event listener sur le bouton Se connecter
 submitBtn.addEventListener("click", handleSubmit);
 
 function handleSubmit() {
-    const mail = mailInput.value;
-    const password = passwordInput.value;
+    let mail = mailInput.value;
+    let password = passwordInput.value;
 
     if (!mail || password === "") {
         alert("Bad credentials.");
-        return;
+    } else {
+        submitBtn.textContent = "Checking!!!";
+        const user = finduserbymail(mail, password);
+
+        setTimeout(() => {
+            if (user) {
+                sessionStorage.setItem("currentUser", JSON.stringify(user));
+                document.location = "dashboard.html";
+            } else {
+                alert("Bad credentials.");
+                submitBtn.textContent = "Se connecter";
+            }
+        }, 2000);
     }
-
-    submitBtn.textContent = "Checking!!!";
-    submitBtn.disabled = true;
-
-    delay(500)
-        .then(() => finduserbymail(mail, password))
-        .then((user) => {
-            sessionStorage.setItem("currentUser", JSON.stringify(user));
-            return delay(1000);
-        })
-        .then(() => {
-            document.location = "dashboard.html";
-        })
-        .catch((error) => {
-            alert(error?.message || "Bad credentials.");
-            submitBtn.textContent = "Se connecter";
-            submitBtn.disabled = false;
-        });
 }
