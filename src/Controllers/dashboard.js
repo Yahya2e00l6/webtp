@@ -241,65 +241,53 @@ function handleTransfer(e) {
 
 } */
 
-function checkUser(numcompte) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const beneficiary = finduserbyaccount(numcompte);
-      if (beneficiary) {
-        resolve(beneficiary);
-      } else {
-        reject(new Error("beneficiary not found"));
-      }
-    }, 500);
-  });
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function checkUser(numcompte) {
+  await delay(500);
+  const beneficiary = finduserbyaccount(numcompte);
+  if (!beneficiary) {
+    throw new Error("beneficiary not found");
+  }
+  return beneficiary;
 }
 
-function checkSolde(expediteur, amount) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (expediteur.wallet.balance >= amount) {
-        resolve("Sufficient balance");
-      } else {
-        reject(new Error("Insufficient balance"));
-      }
-    }, 1000);
-  });
+async function checkSolde(expediteur, amount) {
+  await delay(1000);
+  if (expediteur.wallet.balance < amount) {
+    throw new Error("Insufficient balance");
+  }
+  return "Sufficient balance";
 }
 
-function updateSolde(expediteur, destinataire, amount) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      expediteur.wallet.balance -= amount;
-      destinataire.wallet.balance += amount;
-      resolve("update balance done");
-    }, 200);
-  });
+async function updateSolde(expediteur, destinataire, amount) {
+  await delay(200);
+  expediteur.wallet.balance -= amount;
+  destinataire.wallet.balance += amount;
+  return "update balance done";
 }
 
-function addtransactions(expediteur, destinataire, amount) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const credit = {
-        id: Date.now(),
-        type: "credit",
-        amount: amount,
-        date: new Date().toISOString().split('T')[0],
-        from: expediteur.name,
-      };
+async function addtransactions(expediteur, destinataire, amount) {
+  await delay(500);
+  const credit = {
+    id: Date.now(),
+    type: "credit",
+    amount: amount,
+    date: new Date().toISOString().split('T')[0],
+    from: expediteur.name,
+  };
 
-      const debit = {
-        id: Date.now() + 1,
-        type: "debit",
-        amount: amount,
-        date: new Date().toISOString().split('T')[0],
-        to: destinataire.name,
-      };
+  const debit = {
+    id: Date.now() + 1,
+    type: "debit",
+    amount: amount,
+    date: new Date().toISOString().split('T')[0],
+    to: destinataire.name,
+  };
 
-      expediteur.wallet.transactions.unshift(debit);
-      destinataire.wallet.transactions.unshift(credit);
-      resolve("transaction added successfully");
-    }, 500);
-  });
+  expediteur.wallet.transactions.unshift(debit);
+  destinataire.wallet.transactions.unshift(credit);
+  return "transaction added successfully";
 }
 
 function isCardExpired(expiryDate) {
@@ -308,47 +296,35 @@ function isCardExpired(expiryDate) {
   return expiry < today;
 }
 
-function checkTopupData(amount, selectedCardNumber) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (!amount || amount < 10) {
-        reject(new Error("Le montant minimum est 10 MAD"));
-        return;
-      }
-      if (!amount || amount > 5000) {
-        reject(new Error("Le montant maximal est 5000 MAD"));
-        return;
-      }
+async function checkTopupData(amount, selectedCardNumber) {
+  await delay(300);
+  if (!amount || amount < 10) {
+    throw new Error("Le montant minimum est 10 MAD");
+  }
+  if (!amount || amount > 5000) {
+    throw new Error("Le montant maximal est 5000 MAD");
+  }
 
+  if (!selectedCardNumber) {
+    throw new Error("Veuillez sélectionner une carte");
+  }
 
-      if (!selectedCardNumber) {
-        reject(new Error("Veuillez sélectionner une carte"));
-        return;
-      }
+  const selectedCard = user.wallet.cards.find((card) => card.numcards === selectedCardNumber);
+  if (!selectedCard) {
+    throw new Error("Carte introuvable");
+  }
 
-      const selectedCard = user.wallet.cards.find((card) => card.numcards === selectedCardNumber);
-      if (!selectedCard) {
-        reject(new Error("Carte introuvable"));
-        return;
-      }
+  if (isCardExpired(selectedCard.expiry)) {
+    throw new Error("Carte expirée");
+  }
 
-      if (isCardExpired(selectedCard.expiry)) {
-        reject(new Error("Carte expirée"));
-        return;
-      }
-
-      resolve("Topup data is valid");
-    }, 300);
-  });
+  return "Topup data is valid";
 }
 
-function updateTopupSolde(expediteur, amount) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      expediteur.wallet.balance += amount;
-      resolve("Topup balance updated");
-    }, 300);
-  });
+async function updateTopupSolde(expediteur, amount) {
+  await delay(300);
+  expediteur.wallet.balance += amount;
+  return "Topup balance updated";
 }
 function Topupmethods() {
   selectTopup.innerHTML = '<option value="" disabled selected>Sélectionner une carte</option>';
@@ -360,72 +336,55 @@ function Topupmethods() {
   });
 }
 
-function addTopupTransaction(expediteur, amount, selectedCardNumber) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const selectedCard = expediteur.wallet.cards.find((card) => card.numcards === selectedCardNumber);
-      const topupTransaction = {
-        id: Date.now(),
-        type: "recharge",
-        amount: amount,
-        date: new Date().toISOString().split('T')[0],
-        from: selectedCard ? `${selectedCard.type} ****${selectedCard.numcards}` : "Recharge carte",
-      };
+async function addTopupTransaction(expediteur, amount, selectedCardNumber) {
+  await delay(300);
+  const selectedCard = expediteur.wallet.cards.find((card) => card.numcards === selectedCardNumber);
+  const topupTransaction = {
+    id: Date.now(),
+    type: "recharge",
+    amount: amount,
+    date: new Date().toISOString().split('T')[0],
+    from: selectedCard ? `${selectedCard.type} ****${selectedCard.numcards}` : "Recharge carte",
+  };
 
-      expediteur.wallet.transactions.unshift(topupTransaction);
-      resolve("Topup transaction added");
-    }, 300);
-  });
+  expediteur.wallet.transactions.unshift(topupTransaction);
+  return "Topup transaction added";
 }
 
-function topup(expediteur, amount, selectedCardNumber) {
-  return checkTopupData(amount, selectedCardNumber)
-    .then(() => updateTopupSolde(expediteur, amount))
-    .then(() => addTopupTransaction(expediteur, amount, selectedCardNumber))
-    .then((message) => {
-      sessionStorage.setItem("currentUser", JSON.stringify(expediteur));
-      renderDashboard();
-      closeTopup();
-      return message;
-    })
-    .catch((error) => Promise.reject(error));
+async function topup(expediteur, amount, selectedCardNumber) {
+  await checkTopupData(amount, selectedCardNumber);
+  await updateTopupSolde(expediteur, amount);
+  const message = await addTopupTransaction(expediteur, amount, selectedCardNumber);
+
+  sessionStorage.setItem("currentUser", JSON.stringify(expediteur));
+  renderDashboard();
+  closeTopup();
+  return message;
 }
 
 // **************************************transfer***************************************************//
 
-function transfer(expediteur, numcompte, amount) {
-  let _destinataire;
-  return checkUser(numcompte)
-    .then((destinataire) => {
-      _destinataire = destinataire;
-      console.log("Étape 1: Destinataire trouve -", destinataire.name);
-      return checkSolde(expediteur, amount);
-    })
-    .then((soldemessage) => {
-      console.log(soldemessage);
-      return updateSolde(expediteur, _destinataire, amount);
-    })
-    .then((updatemessage) => {
-      console.log(updatemessage);
-      return addtransactions(expediteur, _destinataire, amount);
-    })
-    .then((addtransactionMessage) => {
-      console.log(addtransactionMessage);
+async function transfer(expediteur, numcompte, amount) {
+  const destinataire = await checkUser(numcompte);
+  console.log("Étape 1: Destinataire trouve -", destinataire.name);
 
-      sessionStorage.setItem("currentUser", JSON.stringify(expediteur));
-      
-      renderDashboard();
-      closeTransfer();
-      return addtransactionMessage;
-    })
-    .catch((error) => {
-      console.log(error.message);
-      return Promise.reject(error);
-    });
+  const soldemessage = await checkSolde(expediteur, amount);
+  console.log(soldemessage);
+
+  const updatemessage = await updateSolde(expediteur, destinataire, amount);
+  console.log(updatemessage);
+
+  const addtransactionMessage = await addtransactions(expediteur, destinataire, amount);
+  console.log(addtransactionMessage);
+
+  sessionStorage.setItem("currentUser", JSON.stringify(expediteur));
+  renderDashboard();
+  closeTransfer();
+  return addtransactionMessage;
 }
 
 
-function handleTransfer(e) {
+async function handleTransfer(e) {
  e.preventDefault();
   const beneficiaryId = document.getElementById("beneficiary").value;
   const beneficiaryAccount=findbeneficiarieByid(user.id,beneficiaryId).account;
@@ -433,11 +392,16 @@ function handleTransfer(e) {
 
   const amount = Number(document.getElementById("amount").value);
 
-transfer(user, beneficiaryAccount, amount);
+  try {
+    await transfer(user, beneficiaryAccount, amount);
+  } catch (error) {
+    console.log(error.message);
+    alert(error.message);
+  }
 
 } 
 
-function handleTopup(e) {
+async function handleTopup(e) {
   e.preventDefault();
 
   const amount = Number(document.getElementById("topupAmount").value);
@@ -446,17 +410,15 @@ function handleTopup(e) {
   const originalText = submitTopupBtn.innerHTML;
   submitTopupBtn.disabled = true;
 
-  topup(user, amount, selectedCardNumber)
-    .then(() => {
-      document.getElementById("topupForm").reset();
-    })
-    .catch((error) => {
-      alert(error.message);
-    })
-    .finally(() => {
-      submitTopupBtn.innerHTML = originalText;
-      submitTopupBtn.disabled = false;
-    });
+  try {
+    await topup(user, amount, selectedCardNumber);
+    document.getElementById("topupForm").reset();
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    submitTopupBtn.innerHTML = originalText;
+    submitTopupBtn.disabled = false;
+  }
 }
 
 /*
